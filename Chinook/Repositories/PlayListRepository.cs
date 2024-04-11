@@ -1,6 +1,7 @@
 ﻿using Chinook.Exceptions;
 using Chinook.Interfaces;
 using Chinook.Models;
+using Chinook.Shared.Common;
 using Microsoft.EntityFrameworkCore;
 using NuGet.Packaging;
 
@@ -9,12 +10,16 @@ namespace Chinook.Repositories
     public class PlayListRepository : IPlayListRepository
     {
         private IDbContextFactory<ChinookContext> DbFactory;
-        private const string FAVORITE_PLAYLIST_NAME = "Favorites";
         public PlayListRepository(IDbContextFactory<ChinookContext> dbFactory)
         {
             DbFactory = dbFactory;
         }
 
+        /// <summary>
+        /// The method create a new playlist.
+        /// </summary>
+        /// <param name="PlayList"></param>
+        /// <returns></returns>
         public async Task<Playlist> CreatePlaylistAsync(Playlist PlayList)
         {
             using var DbContext = await DbFactory.CreateDbContextAsync();
@@ -25,6 +30,11 @@ namespace Chinook.Repositories
             return PlayList;
         }
 
+        /// <summary>
+        /// The method returns all playlists for a given userid.
+        /// </summary>
+        /// <param name="UserId"></param>
+        /// <returns></returns>
         public async Task<List<Playlist>> GetAllPlayListsAsync(string UserId)
         {
             using var DbContext = await DbFactory.CreateDbContextAsync();
@@ -34,6 +44,11 @@ namespace Chinook.Repositories
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// The method returns Playlist according to given playlist id.
+        /// </summary>
+        /// <param name="PlaylistId"></param>
+        /// <returns></returns>
         public async Task<Playlist?> GetPlayListAsync(long PlaylistId)
         {
             using var DbContext = await DbFactory.CreateDbContextAsync();
@@ -43,33 +58,19 @@ namespace Chinook.Repositories
                 .FirstOrDefaultAsync(p => p.PlaylistId == PlaylistId);
         }
 
-        public async Task<Playlist> GetPlaylistByNameAsync(string UserId, string PlaylistName)
+        /// <summary>
+        /// The method returns a playlist according to given userid and playlist name.
+        /// </summary>
+        /// <param name="UserId"></param>
+        /// <param name="PlaylistName"></param>
+        /// <returns></returns>
+        public async Task<Playlist?> GetPlaylistByNameAsync(string UserId, string PlaylistName)
         {
             using var DbContext = await DbFactory.CreateDbContextAsync();
             return await DbContext.Playlists.Include(a => a.Tracks)
                 .ThenInclude(t => t.Album).ThenInclude(a => a.Artist)
                 .SingleOrDefaultAsync(p => p.UserId == UserId && p.Name == PlaylistName);
         }
-
-        public async Task<Playlist> GetUserFavoritePlaylistAsync(string UserId)
-        {
-            using var DbContext = await DbFactory.CreateDbContextAsync();
-            return await DbContext.Playlists.Include(p => p.Tracks).SingleOrDefaultAsync(p => p.UserId == UserId && p.Name == FAVORITE_PLAYLIST_NAME);
-        }
-
-        public async Task UpdateTracksInPlaylistAsync(Playlist Playlist)
-        {
-            using var DbContext = await DbFactory.CreateDbContextAsync();
-            var ExistingPlaylist = await DbContext.Playlists.Include(t => t.Tracks).SingleOrDefaultAsync(p => p.PlaylistId == Playlist.PlaylistId);
-            if (ExistingPlaylist == null)
-            {
-                throw new ChinookException("Invalid playlist");
-            }
-            await AddTracksToExistingPlaylistAsync(ExistingPlaylist, Playlist.Tracks.ToList(), DbContext);
-
-            await DbContext.SaveChangesAsync();
-        }
-
 
         public async Task RemovePlaylistAsync(long PlaylistId)
         { 
@@ -83,7 +84,15 @@ namespace Chinook.Repositories
             await DbContext.SaveChangesAsync();   
         }
 
-        public async Task UpdatePlaylistAsync(Playlist Playlist, string mode)
+        /// <summary>
+        /// The method updates existing playlist.
+        /// According to update command, the method add or remove tracks from the playlist.
+        /// </summary>
+        /// <param name="Playlist"></param>
+        /// <param name="UpdateCommand"></param>
+        /// <returns></returns>
+        /// <exception cref="ChinookException"></exception>
+        public async Task UpdatePlaylistAsync(Playlist Playlist, string UpdateCommand)
         {
             using var DbContext = await DbFactory.CreateDbContextAsync();
             var ExistingPlaylist = await DbContext.Playlists.Include(t => t.Tracks)
@@ -94,7 +103,10 @@ namespace Chinook.Repositories
                 throw new ChinookException("Invalid playlist");
             }
 
-            if (mode.ToLower() == "add")
+            // At this moment only tracks adding and removing happens.
+            // If there are more modes we can go for factory pattern which such as TrackCommandFactory which provide TrackCommand.
+            // Eg TrackCommand.Exectue will execute add, remove, etc commands.
+            if (UpdateCommand.ToLower() == ConstantName.ADD_COMMAND)
             {
                await AddTracksToExistingPlaylistAsync(ExistingPlaylist, Playlist.Tracks.ToList(), DbContext);
             }
@@ -105,6 +117,7 @@ namespace Chinook.Repositories
             await DbContext.SaveChangesAsync();
         }
 
+        // The method tracks which Tracks to be removed from the playlist.
         private async Task RemoveTrackFromPlaylistAsync(Playlist ExistingPlaylist, List<Track> Tracks, ChinookContext DbContext)
         {
             foreach (var Track in Tracks)
@@ -118,6 +131,7 @@ namespace Chinook.Repositories
             }
         }
 
+        // The method fills the user property in the playlist.
         private async Task GetUserDetailsAsync(Playlist NewPlaylist, ChinookContext DbContext)
         {
             var User = await DbContext.Users.FindAsync(NewPlaylist.UserId);
@@ -129,6 +143,7 @@ namespace Chinook.Repositories
 
         }
 
+        // The method adds tracks to new palylist.
         private async Task AddTracksToNewPlaylistAsync(Playlist NewPlaylist, ChinookContext DbContext)
         {
             List<Track> NewTracks = new List<Track>();
@@ -147,6 +162,7 @@ namespace Chinook.Repositories
             }
         }
 
+        //The method add tracks to existing playlist.
         private async Task AddTracksToExistingPlaylistAsync(Playlist ExistingPlaylist, List<Track> Tracks, ChinookContext DbContext)
         {
             foreach (var track in Tracks)

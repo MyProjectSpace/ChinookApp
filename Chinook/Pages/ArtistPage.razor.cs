@@ -6,12 +6,12 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Chinook.Interfaces;
 using Chinook.Exceptions;
+using Chinook.Shared.Common;
 
 namespace Chinook.Pages
 {
     public partial class ArtistPage
     {
-
         [Parameter] public long ArtistId { get; set; }
         [CascadingParameter] public EventCallback<Playlist> OnPlaylistAddOrUpdate { get; set; }
         [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
@@ -19,7 +19,7 @@ namespace Chinook.Pages
         [Inject] IArtistService ArtistService { get; set; }
         [Inject] ILogger<ArtistPage> Logger { get; set; }
         [Inject] IPlayListService PlayListService { get; set; }
-
+        [Inject] NavigationManager NavigationManager { get; set; } = null!;
         private Modal PlaylistDialog { get; set; }
         private ClientModels.Artist Artist;
         private List<PlaylistTrack> Tracks;
@@ -54,7 +54,15 @@ namespace Chinook.Pages
 
         private async Task LoadPlaylistDropdown()
         {
+            var TempPlayList = new List<Playlist>();
             Playlists = await PlayListService.GetAllPlaylistsAsync(CurrentUserId);
+            TempPlayList = Playlists.Where(p => p.Name != ConstantName.FAVORITE_PLAYLIST_NAME).ToList();
+            var FavoritePlaylist = Playlists.SingleOrDefault(tp => tp.Name == ConstantName.FAVORITE_PLAYLIST_NAME);
+            if (FavoritePlaylist != null)
+            {
+                TempPlayList.Insert(0, FavoritePlaylist);
+            }
+            Playlists = TempPlayList;
             Playlists.Insert(0, new Playlist()
             {
                 Name = "--Select Playlist--",
@@ -77,7 +85,7 @@ namespace Chinook.Pages
                 var Track = Tracks.Single(t => t.TrackId == TrackId);
                 var Playlist = await PlayListService.AddTrackToUserFavoritePlaylistAsync(CurrentUserId, TrackId);
                 Track.IsFavorite = true;
-                InfoMessage = $"Track {Track.ArtistName} - {Track.AlbumTitle} - {Track.TrackName} added to playlist Favorites.";
+                InfoMessage = $"Track {Track.ArtistName} - {Track.AlbumTitle} - {Track.TrackName} added to playlist {ConstantName.FAVORITE_PLAYLIST_DISPLAY_NAME}.";
                 await OnPlaylistAddOrUpdate.InvokeAsync(Playlist);
             }
             catch (ChinookException cex)
@@ -98,7 +106,12 @@ namespace Chinook.Pages
                 var track = Tracks.FirstOrDefault(t => t.TrackId == TrackId);
                 await PlayListService.RemoveTrackFromUserFavoritePlaylistAsync(CurrentUserId, TrackId);
                 Tracks.Single(t => t.TrackId == TrackId).IsFavorite = false;
-                InfoMessage = $"Track {track.ArtistName} - {track.AlbumTitle} - {track.TrackName} removed from playlist Favorites.";
+                InfoMessage = $"Track {track.ArtistName} - {track.AlbumTitle} - {track.TrackName} removed from playlist {ConstantName.FAVORITE_PLAYLIST_DISPLAY_NAME}.";
+                var FavoritePlaylist = await PlayListService.GetUserFavoritePlaylistAsync(CurrentUserId);
+                if (FavoritePlaylist == null)
+                {
+                    NavigationManager.NavigateTo($"/artist/{Artist.ArtistId}", true);
+                }
             }
             catch (ChinookException cex)
             {
@@ -158,7 +171,7 @@ namespace Chinook.Pages
                 ClosePlaylistModal();
                 PlaylistDialog.Close();
                 InfoMessage = $"Track {Artist.Name} - {SelectedTrack.AlbumTitle} - {SelectedTrack.TrackName} added to playlist {PlaylistName}.";
-                
+
             }
             catch (ChinookException cex)
             {

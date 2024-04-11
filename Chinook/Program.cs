@@ -1,5 +1,6 @@
 using Chinook;
 using Chinook.Areas.Identity;
+using Chinook.AutoMapper;
 using Chinook.Interfaces;
 using Chinook.Models;
 using Chinook.Repositories;
@@ -19,8 +20,12 @@ DbContext.Database.Migrate();
 builder.Services.AddDefaultIdentity<ChinookUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ChinookContext>();
 
+
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+
+//Configure AutoMapper
+builder.Services.AddAutoMapper(typeof(ChinookAutoMapper));
 
 builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<ChinookUser>>();
 builder.Services.AddScoped<ITrackRepository, TrackRepository>();

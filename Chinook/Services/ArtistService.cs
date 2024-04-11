@@ -1,4 +1,5 @@
-﻿using Chinook.ClientModels;
+﻿using AutoMapper;
+using Chinook.ClientModels;
 using Chinook.Interfaces;
 
 namespace Chinook.Services
@@ -6,10 +7,12 @@ namespace Chinook.Services
     public class ArtistService : IArtistService
     {
         private readonly IArtistRepository ArtistRepository;
+        private readonly IMapper Mapper;
 
-        public ArtistService(IArtistRepository artistRepository)
+        public ArtistService(IArtistRepository ArtistRepository, IMapper Mapper)
         {
-            ArtistRepository = artistRepository;
+            this.ArtistRepository = ArtistRepository;
+            this.Mapper = Mapper;   
         }
 
         /// <summary>
@@ -19,12 +22,7 @@ namespace Chinook.Services
         public async Task<List<Artist>> GetAllArtistsAsync()
         {
             var ArtistList = await ArtistRepository.GetAllArtistsAsync();
-            return ArtistList != null ? ArtistList.Select(a => new Artist()
-            {
-                Name = a.Name,
-                AlbumsCount = a.Albums.Count,
-                ArtistId = a.ArtistId,
-            }).ToList() : new List<Artist>();
+            return Mapper.Map<List<Artist>>(ArtistList);
         }
 
         /// <summary>
@@ -39,10 +37,7 @@ namespace Chinook.Services
             {
                 throw new KeyNotFoundException("Invalid artist");
             }
-            return new ClientModels.Artist()
-            {
-                Name = Artist.Name
-            };
+            return Mapper.Map<Artist>(Artist);
         }
 
 

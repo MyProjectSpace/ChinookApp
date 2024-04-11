@@ -8,6 +8,7 @@ using Chinook.Exceptions;
 using NuGet.DependencyResolver;
 using Chinook.Shared.Components;
 using Chinook.ClientModels;
+using Chinook.Shared.Common;
 
 namespace Chinook.Pages
 {
@@ -18,17 +19,14 @@ namespace Chinook.Pages
         [Inject] IPlayListService PlaylistService { get; set; }
         [Inject] ILogger<PlaylistPage> Logger { get; set; }
         [Inject] NavigationManager NavigationManager { get; set; } = null!;
-        [CascadingParameter] private Task<AuthenticationState> authenticationState { get; set; }
+        [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
         private Modal DeleteConfirmationDialog { get; set; }
-
         private Chinook.ClientModels.Playlist Playlist;
         private PlaylistTrack TrackToDelete;
         private string CurrentUserId;
         private string InfoMessage;
         private string ErrorMessage;
         private string DeleteDialogErrorMessage;
-        //private long TrackIdToDelete;
-
 
         protected override async Task OnParametersSetAsync()
         {
@@ -55,7 +53,7 @@ namespace Chinook.Pages
 
         private async Task<string> GetUserId()
         {
-            var user = (await authenticationState).User;
+            var user = (await AuthenticationState).User;
             var userId = user.FindFirst(u => u.Type.Contains(ClaimTypes.NameIdentifier))?.Value;
             return userId;
         }
@@ -67,7 +65,7 @@ namespace Chinook.Pages
                 var Track = Playlist.Tracks.Single(t => t.TrackId == TrackId);
                 var FavoritePlaylist = await PlaylistService.AddTrackToUserFavoritePlaylistAsync(CurrentUserId, TrackId);
                 Track.IsFavorite = true;
-                InfoMessage = $"Track {Track.ArtistName} - {Track.AlbumTitle} - {Track.TrackName} added to playlist Favorites.";
+                InfoMessage = $"Track {Track.ArtistName} - {Track.AlbumTitle} - {Track.TrackName} added to playlist {ConstantName.FAVORITE_PLAYLIST_DISPLAY_NAME}.";
                 await OnPlaylistAddOrUpdate.InvokeAsync(FavoritePlaylist);
             }
             catch (ChinookException cex)
@@ -88,7 +86,13 @@ namespace Chinook.Pages
                 var track = Playlist.Tracks.FirstOrDefault(t => t.TrackId == TrackId);
                 await PlaylistService.RemoveTrackFromUserFavoritePlaylistAsync(CurrentUserId, TrackId);
                 Playlist.Tracks.Single(t => t.TrackId == TrackId).IsFavorite = false;
-                InfoMessage = $"Track {track.ArtistName} - {track.AlbumTitle} - {track.TrackName} removed from playlist Favorites.";
+                InfoMessage = $"Track {track.ArtistName} - {track.AlbumTitle} - {track.TrackName} removed from playlist {ConstantName.FAVORITE_PLAYLIST_DISPLAY_NAME}.";
+                var FavoritePlaylist = await PlaylistService.GetUserFavoritePlaylistAsync(CurrentUserId);
+                if (FavoritePlaylist == null)
+                {
+                    NavigationManager.NavigateTo($"/playlist/{Playlist.PlaylistId}", true);
+                }
+
             }
             catch (ChinookException cex)
             {
@@ -129,7 +133,6 @@ namespace Chinook.Pages
                 Logger.LogError(ex, "Removing track from playlist");
                 DeleteDialogErrorMessage = "Contact Admin. Failed removing track";
             }
-
 
         }
 

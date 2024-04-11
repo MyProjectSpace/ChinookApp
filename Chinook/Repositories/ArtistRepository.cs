@@ -20,11 +20,10 @@ namespace Chinook.Repositories
         /// </summary>
         /// <param name="ArtistId"></param>
         /// <returns>If valid artist id artist details return otherwise null</returns>
-        public async Task<Artist> GetArtistAsync(long ArtistId)
+        public async Task<Artist?> GetArtistAsync(long ArtistId)
         {
             using var DbContext = await DbFactory.CreateDbContextAsync();
-            var artist = await DbContext.Artists.SingleOrDefaultAsync(a => a.ArtistId == ArtistId);
-            return artist;
+            return await DbContext.Artists.SingleOrDefaultAsync(a => a.ArtistId == ArtistId);
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 ﻿@page "/playlist/{PlaylistId:long}"
 @attribute [Authorize]
 @using Chinook.Models
+@using Chinook.Shared.Common
 @using Microsoft.EntityFrameworkCore
 @using System.Security.Claims;
 
@@ -30,17 +31,17 @@
 
 @if (Playlist == null)
 {
-     <Loading />
+    <Loading />
 }
 else
 {
-    <h1>Playlist <strong>@(Playlist.Name == "Favorites"? "My Favorite tracks" : Playlist.Name)</strong></h1>
+    <h1>Playlist <strong>@(ConstantName.GetPlaylistName(Playlist.Name)) </strong></h1>
     <table class="table table-striped table-hover table-sm">
         <thead>
             <tr>
                 <th>Track</th>
                 <th></th>
-        </tr>
+            </tr>
         </thead>
         <tbody>
             @foreach (var Track in Playlist.Tracks)
@@ -49,7 +50,7 @@ else
                     <td>@Track.ArtistName - @Track.AlbumTitle - @Track.TrackName</td>
                     <td>
                         <div class="d-flex">
-                            @if (Playlist.Name != "Favorites")
+                            @if (Playlist.Name != ConstantName.FAVORITE_PLAYLIST_NAME)
                             {
                                 @if (Track.IsFavorite)
                                 {
@@ -84,7 +85,7 @@ else
                 </div>
             </div>
         }
-        <p>Do you want to delete the track "@(TrackToDelete?.TrackName)" from the playlist? </p>
+        <p>Do you want to delete the track "@(TrackToDelete?.TrackName)" from the playlist "@(Playlist?.Name == ConstantName.FAVORITE_PLAYLIST_NAME ? ConstantName.FAVORITE_PLAYLIST_DISPLAY_NAME : Playlist?.Name)"? </p>
     </Body>
     <Footer>
         <button class="btn btn-success" @onclick="@(() => RemoveTrack(TrackToDelete.TrackId))">Remove</button>

@@ -2,6 +2,7 @@
 @using Chinook.Interfaces
 @using System.Security.Claims
 @using Chinook.Pages
+@using Chinook.Shared.Common
 @inherits LayoutComponentBase
 
 <PageTitle>Chinook</PageTitle>
@@ -48,8 +49,8 @@
         var ExistingPlaylist = await PlayListService.GetAllPlaylistsAsync(CurrentUserId);
         if (ExistingPlaylist != null)
         {
-            Playlists =  ExistingPlaylist.Where(p => p.Name != "Favorites").ToList();
-            var FavoritePlaylist = ExistingPlaylist.SingleOrDefault(p => p.Name == "Favorites");
+            Playlists =  ExistingPlaylist.Where(p => p.Name != ConstantName.FAVORITE_PLAYLIST_NAME).ToList();
+            var FavoritePlaylist = ExistingPlaylist.SingleOrDefault(p => p.Name == ConstantName.FAVORITE_PLAYLIST_NAME);
             if (FavoritePlaylist != null)
             {
                 Playlists.Insert(0, FavoritePlaylist);
@@ -72,7 +73,7 @@
         var CreatedOrUpdatedPlaylist = UserPlaylists.SingleOrDefault(up => up.PlaylistId == Playlist.PlaylistId);
         if (CreatedOrUpdatedPlaylist == null)
         {
-            if (Playlist.Name == "Favorites")
+            if (Playlist.Name == ConstantName.FAVORITE_PLAYLIST_NAME)
             {
                 UserPlaylists.Insert(0, Playlist);
             }

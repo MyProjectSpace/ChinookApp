@@ -30,8 +30,6 @@ namespace Chinook.Pages
             }
         }
 
-
-
         // This method will not search artists in database. Since all the artists are loaded to the front end at the moments.
         // If there are considerable amount of artists are there we should retrieve using pagination from the database.
         private void SearchArtist()

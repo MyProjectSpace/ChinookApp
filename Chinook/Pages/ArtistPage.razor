@@ -3,6 +3,7 @@
 
 @using Chinook.Models
 @using Chinook.ClientModels
+@using Chinook.Shared.Common
 @using Microsoft.EntityFrameworkCore
 @using System.Security.Claims;
 
@@ -86,7 +87,7 @@ else
         @if (SelectedTrack != null)
         {
             <div class="form-group mb-2">
-                <label>@Artist.Name - @SelectedTrack.AlbumTitle - @SelectedTrack.TrackName</label>
+                <label>@Artist?.Name - @SelectedTrack.AlbumTitle - @SelectedTrack.TrackName</label>
             </div>
         }
 
@@ -95,7 +96,7 @@ else
             <select class="form-control" id="ExistingPlaylist" @bind="PlaylistId">
                 @foreach (var playlist in Playlists)
                 {
-                    <option value="@playlist.PlaylistId">@playlist.Name</option>
+                    <option value="@playlist.PlaylistId">@(ConstantName.GetPlaylistName(playlist.Name))</option>
                 }
             </select>
         </div>

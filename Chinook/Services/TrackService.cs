@@ -1,27 +1,30 @@
-﻿using Chinook.ClientModels;
+﻿using AutoMapper;
+using Chinook.ClientModels;
 using Chinook.Interfaces;
 
 namespace Chinook.Services
 {
     public class TrackService : ITrackService
     {
-        private ITrackRepository trackRepository;
+        private ITrackRepository TrackRepository;
+        private IMapper Mapper;
 
-        public TrackService(ITrackRepository trackRepository)
+        public TrackService(ITrackRepository trackRepository, IMapper Mapper)
         {
-            this.trackRepository = trackRepository;
+            this.TrackRepository = trackRepository;
+            this.Mapper = Mapper;
         }
 
+        /// <summary>
+        /// The method retrieves Playlist tracks according to given artist.
+        /// </summary>
+        /// <param name="ArtistId"></param>
+        /// <param name="CurrentUserId"></param>
+        /// <returns></returns>
         public async Task<List<PlaylistTrack>> GetPlaylistTracksAsync(long ArtistId, string CurrentUserId)
         {
-            var tracks = await trackRepository.GetAllTracksAsync(ArtistId);
-            return tracks.Select(t => new PlaylistTrack()
-            {
-                AlbumTitle = (t.Album == null ? "-" : t.Album.Title),
-                TrackId = t.TrackId,
-                TrackName = t.Name,
-                IsFavorite = t.Playlists.Any(p => p.UserId == CurrentUserId && p.Name == "Favorites")
-            }).ToList();
+            var Tracks = await TrackRepository.GetAllTracksAsync(ArtistId);
+            return Mapper.Map<List<PlaylistTrack>>(Tracks, opt => opt.Items["UserId"] = CurrentUserId);
         }
     }
 }
