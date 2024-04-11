@@ -1,10 +1,14 @@
-﻿@inherits LayoutComponentBase
+﻿@using Chinook.ClientModels
+@using Chinook.Interfaces
+@using System.Security.Claims
+@using Chinook.Pages
+@inherits LayoutComponentBase
 
 <PageTitle>Chinook</PageTitle>
 
 <div class="page">
     <div class="sidebar">
-        <NavMenu />
+        <NavMenu Playlists="UserPlaylists" />
     </div>
 
     <main>
@@ -13,7 +17,74 @@
         </div>
 
         <article class="content px-4">
-            @Body
+            <CascadingValue Value="HandlePlaylistCallback">
+                @Body
+            </CascadingValue>
         </article>
     </main>
 </div>
+
+@code {
+    [Inject] IPlayListService PlayListService { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthenticationState { get; set; }
+    private string CurrentUserId;
+
+    List<Playlist> UserPlaylists = new List<Playlist>();
+
+    // This is the call back function that is passed to child componets as cascading parameter.
+    // All the child component can access this method to publish if new change done to Playlist to make it reflect on the nav bar.
+    public EventCallback<Playlist> HandlePlaylistCallback => EventCallback.Factory.Create<Playlist>(this, HandlePlaylistAddedOrUpdate);
+
+    protected override async Task OnInitializedAsync()
+    {
+        CurrentUserId = await GetUserId();
+        UserPlaylists = await GetUserPlaylists();
+        await base.OnInitializedAsync();
+    }
+
+    private async Task<List<Playlist>> GetUserPlaylists()
+    {
+        List<Playlist> Playlists = new List<Playlist>();
+        var ExistingPlaylist = await PlayListService.GetAllPlaylistsAsync(CurrentUserId);
+        if (ExistingPlaylist != null)
+        {
+            Playlists =  ExistingPlaylist.Where(p => p.Name != "Favorites").ToList();
+            var FavoritePlaylist = ExistingPlaylist.SingleOrDefault(p => p.Name == "Favorites");
+            if (FavoritePlaylist != null)
+            {
+                Playlists.Insert(0, FavoritePlaylist);
+            }
+        }
+        return Playlists;
+
+    }
+
+    private async Task<string> GetUserId()
+    {
+        var user = (await AuthenticationState).User;
+        var userId = user.FindFirst(u => u.Type.Contains(ClaimTypes.NameIdentifier))?.Value;
+        return userId;
+    }
+
+    public void HandlePlaylistAddedOrUpdate(Playlist Playlist)
+    {
+        // Add newly created playlist to the list
+        var CreatedOrUpdatedPlaylist = UserPlaylists.SingleOrDefault(up => up.PlaylistId == Playlist.PlaylistId);
+        if (CreatedOrUpdatedPlaylist == null)
+        {
+            if (Playlist.Name == "Favorites")
+            {
+                UserPlaylists.Insert(0, Playlist);
+            }
+            else
+            {
+                UserPlaylists.Add(Playlist);
+            }
+        }
+        else
+        {
+            CreatedOrUpdatedPlaylist.Name = Playlist.Name;
+        }
+        StateHasChanged();
+    }
+}
