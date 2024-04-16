@@ -28,7 +28,6 @@ public partial class ChinookContext : IdentityDbContext<ChinookUser>
     public virtual DbSet<MediaType> MediaTypes { get; set; } = null!;
     public virtual DbSet<Playlist> Playlists { get; set; } = null!;
     public virtual DbSet<Track> Tracks { get; set; } = null!;
-    public virtual DbSet<UserPlaylist> UserPlaylists { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -218,7 +217,7 @@ public partial class ChinookContext : IdentityDbContext<ChinookUser>
         {
             entity.ToTable("Playlist");
 
-            entity.Property(e => e.PlaylistId).ValueGeneratedNever();
+            entity.Property(e => e.PlaylistId).ValueGeneratedOnAdd();
 
             entity.Property(e => e.Name).HasColumnType("NVARCHAR(120)");
 
@@ -268,21 +267,6 @@ public partial class ChinookContext : IdentityDbContext<ChinookUser>
                 .WithMany(p => p.Tracks)
                 .HasForeignKey(d => d.MediaTypeId)
                 .OnDelete(DeleteBehavior.ClientSetNull);
-        });
-
-
-        modelBuilder.Entity<UserPlaylist>(entity =>
-        {
-            entity.ToTable("UserPlaylists");
-            entity.HasKey(bc => new { bc.UserId, bc.PlaylistId });
-
-            entity.HasOne(up => up.User)
-                .WithMany(u => u.UserPlaylists)
-                .HasForeignKey(up => up.UserId);
-
-            entity.HasOne(up => up.Playlist)
-                .WithMany(u => u.UserPlaylists)
-                .HasForeignKey(up => up.PlaylistId);
         });
 
         OnModelCreatingPartial(modelBuilder);
